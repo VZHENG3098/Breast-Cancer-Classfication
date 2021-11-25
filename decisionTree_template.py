@@ -176,4 +176,4 @@ if __name__ == "__main__":
     data, featNames = loadDataSet('car.csv')
     dtTree = buildTree(data, featNames)
     # print (dtTree)
-    treeplot.createPlot(dtTree)
+    breast_cancer_treeplot.createPlot(dtTree)
