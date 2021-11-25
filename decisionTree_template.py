@@ -1,5 +1,5 @@
 
-import treeplot
+import breast_cancer_treeplot
 
 def loadDataSet(filepath):
     '''
@@ -31,14 +31,14 @@ def splitData(dataSet, axis, value):
     dataSet: 2-D list
         [n_sampels, m_features + 1]
         the last column is class label
-    axis: int 
+    axis: int
         index of which feature to split on
     value: string
         the feature value to split on
 
     Returns
     ------------------
-    subset: 2-D list 
+    subset: 2-D list
         the subset of data by selecting the instances that have the given feature value
         and removing the given feature columns
     '''
@@ -98,7 +98,7 @@ def chooseBestFeature(dataSet):
 
 def stopCriteria(dataSet):
     '''
-    Criteria to stop splitting: 
+    Criteria to stop splitting:
     1) if all the classe labels are the same, then return the class label;
     2) if there are no more features to split, then return the majority label of the subset.
 
@@ -112,7 +112,7 @@ def stopCriteria(dataSet):
     ------------------
     assignedLabel: string
         if satisfying stop criteria, assignedLabel is the assigned class label;
-        else, assignedLabel is None 
+        else, assignedLabel is None
     '''
     # TODO
     assignedLabel = None
@@ -167,7 +167,7 @@ def buildTree(dataSet, featNames):
     uniqueVals = list(set(featValues))
     for value in uniqueVals:
         myTree[bestFeatName][value] = buildTree(splitData(dataSet, bestFeatId, value), subFeatName)
-    
+
     return myTree
 
 
@@ -175,6 +175,5 @@ def buildTree(dataSet, featNames):
 if __name__ == "__main__":
     data, featNames = loadDataSet('car.csv')
     dtTree = buildTree(data, featNames)
-    # print (dtTree) 
+    # print (dtTree)
     treeplot.createPlot(dtTree)
-    
