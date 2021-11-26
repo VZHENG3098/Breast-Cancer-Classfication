@@ -1,5 +1,9 @@
-
-import treeplot
+import collections
+import os
+import uuid
+import pydot
+import os
+os.environ["PATH"] += os.pathsep + 'C:/Program Files/Graphviz.bin/'
 
 def loadDataSet(filepath):
     '''
@@ -10,11 +14,11 @@ def loadDataSet(filepath):
     featNames: 1-D list
         feature names
     '''
-    data=[]
+    data = []
     featNames = None
     fr = open(filepath)
-    for (i,line) in enumerate(fr.readlines()):
-        array=line.strip().split(',')
+    for (i, line) in enumerate(fr.readlines()):
+        array = line.strip().split(',')
         if i == 0:
             featNames = array[:-1]
         else:
@@ -31,94 +35,90 @@ def splitData(dataSet, axis, value):
     dataSet: 2-D list
         [n_sampels, m_features + 1]
         the last column is class label
-    axis: int 
+    axis: int
         index of which feature to split on
     value: string
         the feature value to split on
 
     Returns
     ------------------
-    subset: 2-D list 
+    subset: 2-D list
         the subset of data by selecting the instances that have the given feature value
         and removing the given feature columns
     '''
     subset = []
     for instance in dataSet:
-        if instance[axis] == value:    # if contains the given feature value
-            reducedVec = instance[:axis] + instance[axis+1:] # remove the given axis
+        if instance[axis] == value:  # if contains the given feature value
+            reducedVec = instance[:axis] + instance[axis + 1:]  # remove the given axis
             subset.append(reducedVec)
     return subset
 
 
+def parentGini(TdataSet, parent, dataSetSize):
+    labels = collections.Counter(TdataSet[len(TdataSet) - 1])
+    for label in labels.values():
+        parent -= (label / dataSetSize) ** 2
+    return parent
+
+
+def uniqueFeature(TdataSet):
+    featureKeys = []
+    TdataSetSize = len(TdataSet)
+    for i in range(TdataSetSize - 1):
+        featureKeys.append(sorted(list(set(TdataSet[i]))))
+    return featureKeys
+
+
+def uniqueLabel(TdataSet):
+    TdataSetSize = len(TdataSet)
+    label = sorted(list(set(TdataSet[TdataSetSize - 1])))
+    return label
+
+
+def fillList(length):
+    filled = []
+    for i in range(length):
+        filled.append(0)
+    return filled
+
+
 def chooseBestFeature(dataSet):
-    greatestIndex = 0
-    greatGiniValue = 0
-    for i in range(0,len(dataSet[0])-1):
-        listOfAllFeature = dict()
-        ValueOfLabel = dict()
-        labelIndex = len(dataSet[i]) - 1
-        for currentLabel in dataSet:
-            Label = currentLabel[labelIndex]
-            if currentLabel[i] in listOfAllFeature:
-                listOfAllFeature[currentLabel[i]][1] += 1
-                labelHolder = listOfAllFeature[currentLabel[i]][0]
-                if Label in labelHolder:
-                    labelHolder[Label] += 1
-                else:
-                    labelHolder[Label] = 1
-                    listOfAllFeature[currentLabel[i]][0] = labelHolder
-            else:
-                labelHolder = dict()
-                labelHolder[Label] = 1
-                listOfAllFeature[currentLabel[i]] = [labelHolder, 1]
-            if currentLabel[labelIndex] in ValueOfLabel:
-                ValueOfLabel[currentLabel[labelIndex]] += 1
-            else:
-                ValueOfLabel[currentLabel[labelIndex]] = 1
-        giniIndexParent = 1
-        for key in ValueOfLabel:
-            giniIndexParent -= pow((ValueOfLabel[key] / len(dataSet)), 2)
-        GiniIndexForEachFeature = dict()
-        for key in listOfAllFeature:
-            featureGini = 1
-            for key2 in listOfAllFeature[key][0]:
-                featureGini -= pow((listOfAllFeature[key][0][key2] / listOfAllFeature[key][1]), 2)
-            GiniIndexForEachFeature[key] = featureGini
-        SubtractGiniBy = 0
-        for key in listOfAllFeature:
-            SubtractGiniBy += listOfAllFeature[key][1] / len(dataSet) * GiniIndexForEachFeature[key]
-        featureGiniParent = giniIndexParent - SubtractGiniBy
-        if i == 0:
-            greatGiniValue = featureGiniParent
-        elif greatGiniValue < featureGiniParent:
-            greatestIndex = i
-            greatGiniValue = featureGiniParent
-    return greatestIndex
+    dataSetSize = len(dataSet)
+    TdataSet = list(map(list, zip(*dataSet)))
+    parent = parentGini(TdataSet, 1, dataSetSize)
+    featureKeys = uniqueFeature(TdataSet)
+    labels = uniqueLabel(TdataSet)
+    Gain = []  # index of list corresponds to feature in the TdataSet
+    for featuresIndex in range(len(featureKeys)):
+        subfeatures = []
+        for feature in featureKeys[featuresIndex]:
+            totalLabeled = fillList(len(labels))
+            total = 1
+            for entry in dataSet:
+                if entry[featuresIndex] == feature:
+                    for labelIndex in range(len(labels)):
+                        if entry[len(entry) - 1] == labels[labelIndex]:
+                            totalLabeled[labelIndex] += 1
+            for labeled in totalLabeled:
+                total -= (labeled / sum(totalLabeled)) ** 2
+            subfeatures.append(total * (sum(totalLabeled) / dataSetSize))
+        Gain.append(parent - (sum(subfeatures)))
+    return Gain.index(max(Gain))
+
+
+def sameLabel(dataSet):
+    assignedLabel = dataSet[0][len(dataSet[0]) - 1]
+    for i in range(len(dataSet)):
+        if assignedLabel != dataSet[i][len(dataSet[i]) - 1]:
+            return False
+    return True
 
 
 def stopCriteria(dataSet):
-    '''
-    Criteria to stop splitting: 
-    1) if all the classe labels are the same, then return the class label;
-    2) if there are no more features to split, then return the majority label of the subset.
-
-    Parameters
-    -----------------
-    dataSet: 2-D list
-        [n_sampels, m_features + 1]
-        the last column is class label
-
-    Returns
-    ------------------
-    assignedLabel: string
-        if satisfying stop criteria, assignedLabel is the assigned class label;
-        else, assignedLabel is None 
-    '''
-    # TODO
     assignedLabel = None
     returnBool = True
     MajorityTable = dict()
-    labelIndex = len(dataSet[0])-1
+    labelIndex = len(dataSet[0]) - 1
     for currentLabel in dataSet:
         if currentLabel[labelIndex] in MajorityTable:
             MajorityTable[currentLabel[labelIndex]] += 1
@@ -133,11 +133,10 @@ def stopCriteria(dataSet):
     if returnBool:
         return assignedLabel
 
-    SortedDict = sorted(MajorityTable.items(), key = lambda kv: kv[1],reverse=True)
+    SortedDict = sorted(MajorityTable.items(), key=lambda kv: kv[1], reverse=True)
     if len(dataSet[0]) <= 1:
         return SortedDict[0][0]
     return None
-
 
 
 def buildTree(dataSet, featNames):
@@ -157,24 +156,85 @@ def buildTree(dataSet, featNames):
     assignedLabel = stopCriteria(dataSet)
     if assignedLabel:
         return assignedLabel
+
     bestFeatId = chooseBestFeature(dataSet)
     bestFeatName = featNames[bestFeatId]
 
-    myTree = {bestFeatName:{}}
+    myTree = {bestFeatName: {}}
     subFeatName = featNames[:]
-    del(subFeatName[bestFeatId])
+    del (subFeatName[bestFeatId])
     featValues = [d[bestFeatId] for d in dataSet]
     uniqueVals = list(set(featValues))
     for value in uniqueVals:
         myTree[bestFeatName][value] = buildTree(splitData(dataSet, bestFeatId, value), subFeatName)
-    
+
     return myTree
 
+def recursiveTreeBuilding(dtTree):
+    if isinstance(dtTree, str):
+        return
+    for item in dtTree:
+        if type(dtTree[item]).__name__ == 'dict':
+            print(dtTree[item],"dict")
+            isDict = False
+            for item2 in dtTree[item]:
+                if type(dtTree[item][item2]).__name__ == 'dict':
+                    isDict = True
+                    break
+            if isDict: #Create A new Node
+                print(isDict)
+        recursiveTreeBuilding(dtTree[item])
 
+
+def generate_unique_node():
+    """ Generate a unique node label."""
+    return str(uuid.uuid1())
+
+
+def create_node(graph, label, shape='oval'):
+    node = pydot.Node(generate_unique_node(), label=label, shape=shape)
+    graph.add_node(node)
+    return node
+
+
+def create_edge(graph, node_parent, node_child, label):
+    link = pydot.Edge(node_parent, node_child, label=label)
+    graph.add_edge(link)
+    return link
+
+
+def walk_tree(graph, dictionary, prev_node=None):
+    """ Recursive construction of a decision tree stored as a dictionary """
+    for parent, child in dictionary.items():
+        # root
+        if not prev_node:
+            root = create_node(graph, parent)
+            walk_tree(graph, child, root)
+            continue
+
+        # node
+        if isinstance(child, dict):
+            for p, c in child.items():
+                n = create_node(graph, p)
+                create_edge(graph, prev_node, n, str(parent))
+                walk_tree(graph, c, n)
+
+        # leaf
+        else:
+            leaf = create_node(graph, str(child), shape='box')
+            create_edge(graph, prev_node, leaf, str(parent))
+
+def plot_tree(dictionary, filename="DecisionTree.png"):
+    graph = pydot.Dot(graph_type='graph')
+    walk_tree(graph, dictionary)
+    directory = os.getcwd()
+
+    graph.write_png(filename)
 
 if __name__ == "__main__":
-    data, featNames = loadDataSet('car.csv')
+    data, featNames = loadDataSet('Breast.csv')
     dtTree = buildTree(data, featNames)
-    # print (dtTree) 
-    treeplot.createPlot(dtTree)
-    
+    # print (dtTree)
+    recursiveTreeBuilding(dtTree)
+    plot_tree(dtTree)
+    #treeplot.createPlot(dtTree)
