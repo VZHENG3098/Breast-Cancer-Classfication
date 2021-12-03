@@ -202,7 +202,7 @@ def create_edge(graph, node_parent, node_child, label):
     graph.add_edge(link)
     return link
 
-
+#Taken from SOF questions/24657384/plotting-a-decision-tree-with-pydot 
 def walk_tree(graph, dictionary, prev_node=None):
     """ Recursive construction of a decision tree stored as a dictionary """
     for parent, child in dictionary.items():
