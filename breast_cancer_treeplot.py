@@ -238,8 +238,12 @@ def checkForAccuracy(dtTree,testData,featNamesTest):
     for feat in featNamesTest:
         dictionaryData[feat] = [testData[counter],counter]
         counter+=1
+
     if dtTree == "no--recurrence--events" or dtTree == "recurrence--events":
-        return dtTree == testData[len(testData)-1];
+        if dtTree == testData[len(testData)-1]:
+            return "Solid"
+        else:
+            return "NotSolid"
     for key in dtTree:
         if key in dictionaryData:
             if dictionaryData[key][0] in dtTree[key]:
@@ -259,7 +263,6 @@ def checkForAccuracy(dtTree,testData,featNamesTest):
             return False;
 if __name__ == "__main__":
     accuracy = 0
-    # createTrainingAndTest.createnewData()
     data, featNames = loadDataSet('TrainingData.csv')
     testingData, featNamesTest = loadDataSet('TestingData.csv')
     for a in data:
@@ -272,14 +275,21 @@ if __name__ == "__main__":
     # print(featNamesTest)
     total = len(testingData)
     counter = 0
+    solidCounter = 0
+    notSolidCounter = 0
     for testData in testingData:
-        if checkForAccuracy(dtTree, testData, featNamesTest):
+        Result = checkForAccuracy(dtTree, testData, featNamesTest)
+        if Result =="Solid" :
             counter += 1
+            solidCounter +=1
+        elif Result == "NotSolid":
+            notSolidCounter +=1
+
     accuracy = counter / total
-    # print(accuracy)
+
     # print(checkForAccuracy(dtTree, testingData[5], featNamesTest))
 
     plot_tree(dtTree)
     # print(dtTree)
-
-    print(accuracy)
+    print("Accuracy ignoring not Founded: "+str(solidCounter/(notSolidCounter+solidCounter)))
+    print("Accuracy " + str(accuracy))
