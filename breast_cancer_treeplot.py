@@ -4,7 +4,7 @@ import uuid
 import pydot
 import os
 os.environ["PATH"] += os.pathsep + 'C:/Program Files/Graphviz.bin/'
-
+import createTrainingAndTest
 def loadDataSet(filepath):
     '''
     Returns
@@ -119,6 +119,7 @@ def stopCriteria(dataSet):
     returnBool = True
     MajorityTable = dict()
     labelIndex = len(dataSet[0]) - 1
+
     for currentLabel in dataSet:
         if currentLabel[labelIndex] in MajorityTable:
             MajorityTable[currentLabel[labelIndex]] += 1
@@ -231,10 +232,54 @@ def plot_tree(dictionary, filename="DecisionTree.png"):
 
     graph.write_png(filename)
 
+def checkForAccuracy(dtTree,testData,featNamesTest):
+    dictionaryData = dict()
+    counter=0
+    for feat in featNamesTest:
+        dictionaryData[feat] = [testData[counter],counter]
+        counter+=1
+    if dtTree == "no--recurrence--events" or dtTree == "recurrence--events":
+        return dtTree == testData[len(testData)-1];
+    for key in dtTree:
+        if key in dictionaryData:
+            if dictionaryData[key][0] in dtTree[key]:
+                recursiveTree = dtTree[key][dictionaryData[key][0]]
+                copy = list(featNamesTest)
+                copy.pop(dictionaryData[key][1])
+                testData.pop(dictionaryData[key][1])
+                return checkForAccuracy(recursiveTree, testData, copy)
+            else:
+                # print(dictionaryData)
+                # print(dictionaryData[key][0],"exit",key)
+                print(dtTree)
+                print(dictionaryData)
+                print('c')
+                return
+        else:
+            return False;
 if __name__ == "__main__":
-    data, featNames = loadDataSet('Breast.csv')
+    accuracy = 0
+    # createTrainingAndTest.createnewData()
+    data, featNames = loadDataSet('TrainingData.csv')
+    testingData, featNamesTest = loadDataSet('TestingData.csv')
+    for a in data:
+        if len(a) == 1:
+            data.remove(a)
     dtTree = buildTree(data, featNames)
     # print (dtTree)
-    recursiveTreeBuilding(dtTree)
+    # recursiveTreeBuilding(dtTree)
+    # print(testingData[0])
+    # print(featNamesTest)
+    total = len(testingData)
+    counter = 0
+    for testData in testingData:
+        if checkForAccuracy(dtTree, testData, featNamesTest):
+            counter += 1
+    accuracy = counter / total
+    # print(accuracy)
+    # print(checkForAccuracy(dtTree, testingData[5], featNamesTest))
+
     plot_tree(dtTree)
-    #treeplot.createPlot(dtTree)
+    # print(dtTree)
+
+    print(accuracy)
