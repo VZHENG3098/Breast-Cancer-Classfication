@@ -241,9 +241,15 @@ def checkForAccuracy(dtTree,testData,featNamesTest):
 
     if dtTree == "no--recurrence--events" or dtTree == "recurrence--events":
         if dtTree == testData[len(testData)-1]:
-            return "Solid"
+            if dtTree == "recurrence--events":
+                return "TruePositive"
+            else:
+                return "TrueNegative"
         else:
-            return "NotSolid"
+            if testData[len(testData)-1] == "recurrence--events":
+                return "FalsePositive"
+            if dtTree == "recurrence--events":
+                return "FalseNegative"
     for key in dtTree:
         if key in dictionaryData:
             if dictionaryData[key][0] in dtTree[key]:
@@ -277,16 +283,37 @@ if __name__ == "__main__":
     counter = 0
     solidCounter = 0
     notSolidCounter = 0
+    falsePositive = 0
+    falseNegative = 0
+    trueNegative = 0
+    truePositive = 0
+    unFound = 0
     for testData in testingData:
         Result = checkForAccuracy(dtTree, testData, featNamesTest)
-        if Result =="Solid" :
+        if Result =="TruePositive" :
             counter += 1
             solidCounter +=1
-        elif Result == "NotSolid":
+            truePositive+=1
+        elif Result == "TrueNegative":
+            counter += 1
+            solidCounter += 1
+            trueNegative += 1
+        elif Result == "FalsePositive":
+            falsePositive+=1
             notSolidCounter +=1
+        elif Result == "FalseNegative":
+            falseNegative+=1
+            notSolidCounter +=1
+        else:
+            unFound +=1
 
     accuracy = counter / total
-
+    print("False Negative: "+str(falseNegative))
+    print("False Positive: "+str(falsePositive))
+    print("True Negative: " + str(trueNegative))
+    print("True Positive: " + str(truePositive))
+    print("UnfoundPoints: " + str(unFound   ))
+    print("Size of Test Data: " + str(total))
     # print(checkForAccuracy(dtTree, testingData[5], featNamesTest))
 
     plot_tree(dtTree)
